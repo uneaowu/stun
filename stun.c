@@ -80,24 +80,24 @@ static ssize_t send_with_timeout(int sockfd, void *sm, size_t smsize, double tim
     return send(sockfd, sm, smsize, 0);
 }
 
-uint32_t find_any_address_attr(Stun_Attr_Arr attr_arr)
+Stun_Attr_Mapped_Address find_any_address_attr(Stun_Attr_Arr attr_arr)
 {
-    uint32_t xor_addr_attr = 0, addr_attr = 0;
+    Stun_Attr_Mapped_Address xor_addr_attr = {0}, addr_attr = {0};
 
     for (size_t i = 0; i < attr_arr.len; ++i) {
         Stun_Attr *attr = &attr_arr.arr[i];
         if (attr->type == XOR_MAPPED_ADDRESS) {
-            xor_addr_attr = stun_xor_mapped_address_decode(*attr);
+             xor_addr_attr = stun_xor_mapped_address_decode(*attr);
         } else if (attr->type == MAPPED_ADDRESS) {
             addr_attr = stun_mapped_address_decode(*attr);
         }
     }
 
-    if (xor_addr_attr > 0) {
+    if (xor_addr_attr.family > 0) {
         return xor_addr_attr;
     }
 
-    if (addr_attr > 0) {
+    if (addr_attr.family > 0) {
         return addr_attr;
     }
 
@@ -153,6 +153,12 @@ void print_ipv4(uint32_t ip)
             (ip >> 8*2) & 0xFF,
             (ip >> 8*1) & 0xFF,
             (ip >> 8*0) & 0xFF);
+}
+
+void print_addr_attr(Stun_Attr_Mapped_Address attr)
+{
+    // TODO: check family
+    print_ipv4(attr.address);
 }
 
 int main(int argc, char* argv[])
@@ -250,7 +256,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
 
-        print_ipv4(find_any_address_attr(attr_arr));
+        print_addr_attr(find_any_address_attr(attr_arr));
 
         if (poll) {
             sleep(poll_sleep);
