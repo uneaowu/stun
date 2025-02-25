@@ -87,9 +87,9 @@ uint32_t find_any_address_attr(Stun_Attr_Arr attr_arr)
     for (size_t i = 0; i < attr_arr.len; ++i) {
         Stun_Attr *attr = &attr_arr.arr[i];
         if (attr->type == XOR_MAPPED_ADDRESS) {
-            xor_addr_attr = unpack_xor_mapped_address(*attr);
+            xor_addr_attr = stun_xor_mapped_address_decode(*attr);
         } else if (attr->type == MAPPED_ADDRESS) {
-            addr_attr = unpack_mapped_address(*attr);
+            addr_attr = stun_mapped_address_decode(*attr);
         }
     }
 
@@ -199,7 +199,9 @@ int main(int argc, char* argv[])
 
     uint8_t rbuf[0xFFFF];
 
-    Stun_Message_Header sm; make_binding_request(&sm);
+    Stun_Message_Header sm = stun_binding_request_new();
+    Stun_Response_Header r;
+    Stun_Attr_Arr attr_arr;
     size_t attempts_count = 0;
 
     int s = conn_init(host, port);
@@ -240,8 +242,8 @@ int main(int argc, char* argv[])
             continue;
         }
 
-        Stun_Response_Header r = { 0 }; decode_response_header(&r, rbuf, rn);
-        Stun_Attr_Arr attr_arr = { 0 }; decode_response_attrs(&attr_arr, rbuf, r.len);
+        r = stun_response_header_decode(rbuf, rn);
+        attr_arr = stun_response_attrs_decode(rbuf, r.len);
 
         if (tid_cmp(r.tid, sm.tid, TID_LEN) != 0) {
             fprintf(stderr, "error: mismatching transaction id\n");

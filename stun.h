@@ -43,11 +43,11 @@ typedef struct {
     size_t len;
 } Stun_Attr_Arr;
 
-uint32_t unpack_xor_mapped_address(Stun_Attr);
-uint32_t unpack_mapped_address(Stun_Attr);
-void decode_response_attrs(Stun_Attr_Arr *, uint8_t *, uint16_t); // TODO: consider moving out the struct
-void decode_response_header(Stun_Response_Header *, uint8_t *, size_t);
-void make_binding_request(Stun_Message_Header *);
+uint32_t stun_xor_mapped_address_decode(Stun_Attr);
+uint32_t stun_mapped_address_decode(Stun_Attr);
+Stun_Attr_Arr stun_response_attrs_decode(uint8_t *, uint16_t);
+Stun_Response_Header stun_response_header_decode(uint8_t *, size_t);
+Stun_Message_Header stun_binding_request_new();
 
 #ifdef STUN_H_IMPLEMENTATION
 #define UNIMPLEMENTED(msg) do { \
@@ -62,7 +62,7 @@ static void gen_tid(size_t len, uint32_t tid[len])
     }
 }
 
-uint32_t unpack_xor_mapped_address(Stun_Attr attr)
+uint32_t stun_xor_mapped_address_decode(Stun_Attr attr)
 {
     uint8_t *val = attr.val;
     uint32_t ma_header = ntohl(*(uint32_t *)val);
@@ -79,10 +79,11 @@ uint32_t unpack_xor_mapped_address(Stun_Attr attr)
     return xlong_ip ^ MAGIC_COOKIE;
 }
 
-uint32_t unpack_mapped_address(Stun_Attr attr)
+uint32_t stun_mapped_address_decode(Stun_Attr attr)
 {
     uint8_t *val = attr.val;
     uint32_t ma_header = ntohl(*(uint32_t *)val);
+
     uint32_t family = (ma_header >> 16) & 0xFF;
     if (family == 0x02) { UNIMPLEMENTED("ipv6"); }
 
@@ -92,13 +93,14 @@ uint32_t unpack_mapped_address(Stun_Attr attr)
     return ntohl(*(uint32_t *)val);
 }
 
-void decode_response_attrs(Stun_Attr_Arr *attr_arr, uint8_t *rbuf, uint16_t rlen)
+Stun_Attr_Arr stun_response_attrs_decode(uint8_t *rbuf, uint16_t rlen)
 {
+    Stun_Attr_Arr attr_arr = {0};
     uint8_t *attrs = rbuf + sizeof(Stun_Response_Header);
     uint8_t *attrs_end = attrs + rlen;
 
     while (attrs < attrs_end) {
-        assert(attr_arr->len < ATTRS_ARR_CAP);
+        assert(attr_arr.len < ATTRS_ARR_CAP);
 
         uint16_t type = ntohs(*(uint16_t *)attrs);
         attrs += 2;
@@ -106,8 +108,8 @@ void decode_response_attrs(Stun_Attr_Arr *attr_arr, uint8_t *rbuf, uint16_t rlen
         uint16_t len = ntohs(*(uint16_t *)attrs);
         attrs += 2;
 
-        size_t idx = attr_arr->len++;
-        Stun_Attr *attr = &attr_arr->arr[idx];
+        size_t idx = attr_arr.len++;
+        Stun_Attr *attr = &attr_arr.arr[idx];
 
         attr->type = type;
         attr->len = len;
@@ -117,25 +119,30 @@ void decode_response_attrs(Stun_Attr_Arr *attr_arr, uint8_t *rbuf, uint16_t rlen
 
         attrs += attr->len;
     }
+
+    return attr_arr;
 }
 
-void decode_response_header(Stun_Response_Header *r,
-                    uint8_t *rbuf, size_t rlen)
+Stun_Response_Header stun_response_header_decode(uint8_t *rbuf, size_t rlen)
 {
-    memset(r, 0, sizeof(Stun_Response_Header));
-    memcpy(r, rbuf, MIN(rlen, sizeof(Stun_Response_Header)));
+    Stun_Response_Header r = {0};
+    memcpy(&r, rbuf, MIN(rlen, sizeof(Stun_Response_Header)));
 
-    r->type = ntohs(r->type);
-    r->len = ntohs(r->len);
-    r->cookie = ntohl(r->cookie);
+    r.type = ntohs(r.type);
+    r.len = ntohs(r.len);
+    r.cookie = ntohl(r.cookie);
+
+    return r;
 }
 
-void make_binding_request(Stun_Message_Header *sm)
+Stun_Message_Header stun_binding_request_new(void)
 {
-    memset(sm, 0, sizeof(Stun_Message_Header));
+    Stun_Message_Header h = {0};
 
-    sm->type = htons(BINDING_REQUEST);
-    sm->cookie = htonl(MAGIC_COOKIE);
-    gen_tid(TID_LEN, sm->tid);
+    h.type = htons(BINDING_REQUEST);
+    h.cookie = htonl(MAGIC_COOKIE);
+    gen_tid(TID_LEN, h.tid);
+
+    return h;
 }
 #endif // STUN_H_IMPLEMENTATION
