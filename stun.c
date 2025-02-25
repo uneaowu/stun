@@ -157,7 +157,11 @@ void print_ipv4(uint32_t ip)
 
 void print_addr_attr(Stun_Attr_Mapped_Address attr)
 {
-    // TODO: check family
+    if (attr.family != Stun_Mapped_Address_Family_IPV4) {
+        fprintf(stderr, "error: only ipv4 is supported\n");
+        exit(EXIT_FAILURE);
+    }
+
     print_ipv4(attr.address);
 }
 

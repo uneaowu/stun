@@ -43,8 +43,13 @@ typedef struct {
     size_t len;
 } Stun_Attr_Arr;
 
+typedef enum {
+    Stun_Mapped_Address_Family_IPV4 = 0x01u,
+    Stun_Mapped_Address_Family_IPV6 = 0x02u,
+} Stun_Mapped_Address_Family;
+
 typedef struct {
-    uint32_t family;
+    Stun_Mapped_Address_Family family;
     uint32_t port;
     uint32_t address; // TODO: add support for 128-bit addresses
 } Stun_Attr_Mapped_Address;
