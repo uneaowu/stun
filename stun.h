@@ -13,8 +13,8 @@
 #define MAGIC_COOKIE 0x2112A442
 #define MAPPED_ADDRESS 0x0001
 #define XOR_MAPPED_ADDRESS 0x0020
-#define ATTRS_ARR_CAP 32
-#define ATTR_VAL_CAP 32
+#define ATTRS_ARR_CAP 128
+#define ATTR_VAL_CAP 512
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
@@ -121,7 +121,7 @@ Stun_Attr_Arr stun_response_attrs_decode(uint8_t *rbuf, uint16_t rlen)
     uint8_t *attrs = rbuf + sizeof(Stun_Response_Header);
     uint8_t *attrs_end = attrs + rlen;
 
-    while (attrs < attrs_end) {
+    while (attrs < (attrs_end - 4)) {
         assert(attr_arr.len < ATTRS_ARR_CAP);
 
         uint16_t type = ntohs(*(uint16_t *)attrs);
@@ -129,6 +129,10 @@ Stun_Attr_Arr stun_response_attrs_decode(uint8_t *rbuf, uint16_t rlen)
 
         uint16_t len = ntohs(*(uint16_t *)attrs);
         attrs += 2;
+
+        if ((attrs+len) > attrs_end) {
+            continue;
+        }
 
         size_t idx = attr_arr.len++;
         Stun_Attr *attr = &attr_arr.arr[idx];
