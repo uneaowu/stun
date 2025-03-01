@@ -51,10 +51,10 @@ typedef enum {
 typedef struct {
     Stun_Mapped_Address_Family family;
     uint32_t port;
-    uint32_t address; // TODO: add support for 128-bit addresses
+    uint32_t address[4];
 } Stun_Attr_Mapped_Address;
 
-Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr);
+Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr, uint32_t tid[TID_LEN]);
 Stun_Attr_Mapped_Address stun_mapped_address_decode(Stun_Attr);
 Stun_Attr_Arr            stun_response_attrs_decode(uint8_t *, uint16_t);
 Stun_Response_Header     stun_response_header_decode(uint8_t *, size_t);
@@ -73,46 +73,68 @@ static void gen_tid(size_t len, uint32_t tid[len])
     }
 }
 
-Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr attr)
+Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr attr, uint32_t tid[TID_LEN])
 {
+    Stun_Attr_Mapped_Address addr = {0};
+
     uint8_t *val = attr.val;
+    assert(attr.len >= 4 + 4);
     uint32_t ma_header = ntohl(*(uint32_t *)val);
 
     uint32_t family = (ma_header >> 16) & 0xFF;
-    if (family == 0x02) { UNIMPLEMENTED("ipv6"); }
-
     uint32_t xport = (ma_header >> 0) & 0xFFFF;
     uint32_t port = xport ^ (MAGIC_COOKIE >> 16);
 
     val += 4;
-    uint32_t xaddress = ntohl(*(uint32_t *)val);
-    uint32_t address = xaddress ^ MAGIC_COOKIE;
 
-    return (Stun_Attr_Mapped_Address) {
-        .family = family,
-        .port = port,
-        .address = address,
-    };
+    addr.family = family;
+    addr.port = port;
+    addr.address[0] = ntohl(*((uint32_t *)val)) ^ MAGIC_COOKIE;
+    val += 4;
+
+    if (family == 0x02) {
+        assert(attr.len >= 4 + 4 + 4 * 3);
+
+        // assuming that the transaction id is in network byte order
+        addr.address[1] = ntohl(*((uint32_t *)val)) ^ ntohl(tid[0]);
+        val += 4;
+        addr.address[2] = ntohl(*((uint32_t *)val)) ^ ntohl(tid[1]);
+        val += 4;
+        addr.address[3] = ntohl(*((uint32_t *)val)) ^ ntohl(tid[2]);
+        val += 4;
+    }
+
+    return addr;
 }
 
 Stun_Attr_Mapped_Address stun_mapped_address_decode(Stun_Attr attr)
 {
+    Stun_Attr_Mapped_Address addr = {0};
+
     uint8_t *val = attr.val;
     uint32_t ma_header = ntohl(*(uint32_t *)val);
 
     uint32_t family = (ma_header >> 16) & 0xFF;
-    if (family == 0x02) { UNIMPLEMENTED("ipv6"); }
-
     uint32_t port = (ma_header >> 0) & 0xFFFF;
     val += 4;
 
-    uint32_t address = ntohl(*(uint32_t *)val);
+    addr.family = family;
+    addr.port = port;
+    addr.address[0] = ntohl(*(uint32_t *)val);
+    val += 4;
 
-    return (Stun_Attr_Mapped_Address) {
-        .family = family,
-        .port = port,
-        .address = address,
-    };
+    if (family == 0x02) {
+        assert(attr.len >= 4 + 4 + 4 * 3);
+
+        addr.address[1] = ntohl(*((uint32_t *)val));
+        val += 4;
+        addr.address[2] = ntohl(*((uint32_t *)val));
+        val += 4;
+        addr.address[3] = ntohl(*((uint32_t *)val));
+        val += 4;
+    }
+
+    return addr;
 }
 
 Stun_Attr_Arr stun_response_attrs_decode(uint8_t *rbuf, uint16_t rlen)

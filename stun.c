@@ -80,14 +80,14 @@ static ssize_t send_with_timeout(int sockfd, void *sm, size_t smsize, double tim
     return send(sockfd, sm, smsize, 0);
 }
 
-Stun_Attr_Mapped_Address find_any_address_attr(Stun_Attr_Arr attr_arr)
+Stun_Attr_Mapped_Address find_any_address_attr(Stun_Attr_Arr attr_arr, uint32_t tid[TID_LEN])
 {
     Stun_Attr_Mapped_Address xor_addr_attr = {0}, addr_attr = {0};
 
     for (size_t i = 0; i < attr_arr.len; ++i) {
         Stun_Attr *attr = &attr_arr.arr[i];
         if (attr->type == XOR_MAPPED_ADDRESS) {
-             xor_addr_attr = stun_xor_mapped_address_decode(*attr);
+             xor_addr_attr = stun_xor_mapped_address_decode(*attr, tid);
         } else if (attr->type == MAPPED_ADDRESS) {
             addr_attr = stun_mapped_address_decode(*attr);
         }
@@ -111,9 +111,9 @@ int conn_init(const char* host, const char* port)
     struct addrinfo *result, *rp;
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET; // only ipv4
+    hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
-    hints.ai_flags = AI_V4MAPPED;
+    hints.ai_flags = AI_ALL;
     hints.ai_protocol = 0;
 
     int ai_ret = getaddrinfo(host, port, &hints, &result);
@@ -155,14 +155,50 @@ void print_ipv4(uint32_t ip)
             (ip >> 8*0) & 0xFF);
 }
 
-void print_addr_attr(Stun_Attr_Mapped_Address attr)
+void print_ipv6(uint32_t ip[4])
 {
-    if (attr.family != Stun_Mapped_Address_Family_IPV4) {
-        fprintf(stderr, "error: only ipv4 is supported\n");
-        exit(EXIT_FAILURE);
+    char str[8*8+1];
+
+    snprintf(str, sizeof(str), "%x:%x:%x:%x:%x:%x:%x:%x",
+        (ip[0] >> 8) & 0xFF,
+        (ip[0] >> 0) & 0xFF,
+
+        (ip[1] >> 8) & 0xFF,
+        (ip[1] >> 0) & 0xFF,
+
+        (ip[2] >> 8) & 0xFF,
+        (ip[2] >> 0) & 0xFF,
+
+        (ip[3] >> 8) & 0xFF,
+        (ip[3] >> 0) & 0xFF
+    );
+
+    char s_str[sizeof(str)];
+    size_t ss_len = 0;
+
+    for (size_t i = 0; i < sizeof(str); ++i) {
+        for (; i < sizeof(str) && str[i] == '0'; ++i) {}
+
+        if (str[i] == ':' && ss_len > 1 && s_str[ss_len-1] == ':' && s_str[ss_len-2] == ':') {
+            continue;
+        }
+
+        s_str[ss_len++] = str[i];
     }
 
-    print_ipv4(attr.address);
+    printf("%s\n", s_str);
+}
+
+void print_addr_attr(Stun_Attr_Mapped_Address attr)
+{
+    if (attr.family == Stun_Mapped_Address_Family_IPV4) {
+        print_ipv4(attr.address[0]);
+    } else if (attr.family == Stun_Mapped_Address_Family_IPV6) {
+        print_ipv6(attr.address);
+    } else {
+        fprintf(stderr, "error: unexpected address family\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 int main(int argc, char* argv[])
@@ -260,7 +296,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
 
-        print_addr_attr(find_any_address_attr(attr_arr));
+        print_addr_attr(find_any_address_attr(attr_arr, sm.tid));
 
         if (poll) {
             sleep(poll_sleep);
