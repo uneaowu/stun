@@ -86,9 +86,9 @@ Stun_Attr_Mapped_Address find_any_address_attr(Stun_Attr_Arr attr_arr, uint32_t 
 
     for (size_t i = 0; i < attr_arr.len; ++i) {
         Stun_Attr *attr = &attr_arr.arr[i];
-        if (attr->type == XOR_MAPPED_ADDRESS) {
+        if (attr->type == STUN_ATTR_XOR_MAPPED_ADDRESS) {
              xor_addr_attr = stun_xor_mapped_address_decode(*attr, tid);
-        } else if (attr->type == MAPPED_ADDRESS) {
+        } else if (attr->type == STUN_ATTR_MAPPED_ADDRESS) {
             addr_attr = stun_mapped_address_decode(*attr);
         }
     }
@@ -191,9 +191,9 @@ void print_ipv6(uint32_t ip[4])
 
 void print_addr_attr(Stun_Attr_Mapped_Address attr)
 {
-    if (attr.family == Stun_Mapped_Address_Family_IPV4) {
+    if (attr.family == STUN_ADDRESS_FAMILY_IPV4) {
         print_ipv4(attr.address[0]);
-    } else if (attr.family == Stun_Mapped_Address_Family_IPV6) {
+    } else if (attr.family == STUN_ADDRESS_FAMILY_IPV6) {
         print_ipv6(attr.address);
     } else {
         fprintf(stderr, "error: unexpected address family\n");
@@ -224,6 +224,13 @@ int main(int argc, char* argv[])
         fprintf(stderr, "error: port argument is invalid\n");
         exit(EXIT_FAILURE);
     }
+
+#if 0
+    for (size_t i = 0; i < STUN_ATTR_TYPES_LEN; ++i) {
+        printf("%02zu: %s = 0x%04X\n", i, stun_attr_type_names[i], stun_attr_types[i]);
+    }
+    printf("--------\n");
+#endif
 
     bool poll = false;
     int poll_sleep = 5;
