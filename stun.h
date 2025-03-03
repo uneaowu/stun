@@ -84,19 +84,19 @@
 __STUN_ATTR_TYPES
 #undef __STUN_DEF
 
-const char* stun_attr_type_names[] = {
+const char* STUN_ATTR_TYPE_NAMES[] = {
 #define __STUN_DEF(k,v) #k,
 __STUN_ATTR_TYPES
 #undef __STUN_DEF
 };
 
-const uint16_t stun_attr_types[] = {
+const uint16_t STUN_ATTR_TYPES[] = {
 #define __STUN_DEF(k,v) v,
 __STUN_ATTR_TYPES
 #undef __STUN_DEF
 };
 
-#define STUN_ATTR_TYPES_LEN (sizeof(stun_attr_types)/sizeof(*stun_attr_types))
+#define STUN_ATTR_TYPES_LEN (sizeof(STUN_ATTR_TYPES)/sizeof(*STUN_ATTR_TYPES))
 
 typedef struct {
     uint16_t type;
@@ -134,6 +134,7 @@ typedef struct {
     uint32_t address[4];
 } Stun_Attr_Mapped_Address;
 
+ssize_t                  stun_attr_type_find_idx(uint16_t);
 Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr, uint32_t tid[TID_LEN]);
 Stun_Attr_Mapped_Address stun_mapped_address_decode(Stun_Attr);
 Stun_Attr_Arr            stun_response_attrs_decode(uint8_t *, uint16_t);
@@ -268,4 +269,17 @@ Stun_Message_Header stun_binding_request_new(void)
 
     return h;
 }
+
+
+ssize_t stun_attr_type_find_idx(uint16_t t)
+{
+    for (size_t i = 0; i < STUN_ATTR_TYPES_LEN; ++i) {
+        if (t == STUN_ATTR_TYPES[i]) {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
 #endif // STUN_H_IMPLEMENTATION

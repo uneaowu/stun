@@ -10,6 +10,7 @@
 
 #define FLAG_POLL "--poll"
 #define FLAG_POLL_SLEEP "--poll-sleep="
+#define FLAG_DUMP_ATTRS "--dump-attrs"
 
 static char *arg_shift(int *argc, char** argv[])
 {
@@ -234,6 +235,7 @@ int main(int argc, char* argv[])
 
     bool poll = false;
     int poll_sleep = 5;
+    bool dump_attrs = false;
     char *arg;
     while ((arg = arg_shift(&argc, &argv)) != NULL) {
         if (strcmp(arg, FLAG_POLL) == 0) {
@@ -245,6 +247,8 @@ int main(int argc, char* argv[])
                 fprintf(stderr, "error: " FLAG_POLL_SLEEP " value is invalid\n");
                 exit(EXIT_FAILURE);
             }
+        } else if (strncmp(arg, FLAG_DUMP_ATTRS, sizeof(FLAG_DUMP_ATTRS) - 1) == 0) {
+            dump_attrs = true;
         }
     }
 
@@ -301,6 +305,18 @@ int main(int argc, char* argv[])
         if (tid_cmp(r.tid, sm.tid, TID_LEN) != 0) {
             fprintf(stderr, "error: mismatching transaction id\n");
             exit(EXIT_FAILURE);
+        }
+
+        if (dump_attrs) {
+            for (size_t i = 0; i < attr_arr.len; ++i) {
+                ssize_t idx = stun_attr_type_find_idx(attr_arr.arr[i].type);
+                if (idx < 0) {
+                    fprintf(stderr, "error: encountered an unknown attribute type 0x%04X\n", attr_arr.arr[i].type);
+                    continue;
+                }
+
+                printf("%02zu: %s = 0x%04X\n", i, STUN_ATTR_TYPE_NAMES[idx], STUN_ATTR_TYPES[idx]);
+            }
         }
 
         print_addr_attr(find_any_address_attr(attr_arr, sm.tid));
