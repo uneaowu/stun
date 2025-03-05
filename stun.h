@@ -58,8 +58,9 @@
     __STUN_DEF( FINGERPRINT                        , 0x8028u) \
     __STUN_DEF( ICE_CONTROLLED                     , 0x8029u) \
     __STUN_DEF( ICE_CONTROLLING                    , 0x802Au) \
-    /* NOTE: The RESPONSE-ORIGIN attribute is identical to MAPPED-ADDRESS/XOR-MAPPED-ADDRESS */ \
+    /* NOTE: RESPONSE-ORIGIN is identical to MAPPED-ADDRESS */\
     __STUN_DEF( RESPONSE_ORIGIN                    , 0x802Bu) \
+    /* NOTE: OTHER-ADDRESS is identical to MAPPED-ADDRESS */  \
     __STUN_DEF( OTHER_ADDRESS                      , 0x802Cu) \
     __STUN_DEF( ECN_CHECK_STUN                     , 0x802Du) \
     __STUN_DEF( THIRD_PARTY_AUTHORIZATION          , 0x802Eu) \
