@@ -58,6 +58,7 @@
     __STUN_DEF( FINGERPRINT                        , 0x8028u) \
     __STUN_DEF( ICE_CONTROLLED                     , 0x8029u) \
     __STUN_DEF( ICE_CONTROLLING                    , 0x802Au) \
+    /* NOTE: The RESPONSE-ORIGIN attribute is identical to MAPPED-ADDRESS/XOR-MAPPED-ADDRESS */ \
     __STUN_DEF( RESPONSE_ORIGIN                    , 0x802Bu) \
     __STUN_DEF( OTHER_ADDRESS                      , 0x802Cu) \
     __STUN_DEF( ECN_CHECK_STUN                     , 0x802Du) \
@@ -132,11 +133,12 @@ typedef struct {
     Stun_Address_Family family;
     uint32_t port;
     uint32_t address[4];
-} Stun_Attr_Mapped_Address;
+} Stun_Attr_Address;
 
 ssize_t                  stun_attr_type_find_idx(uint16_t);
-Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr, uint32_t tid[TID_LEN]);
-Stun_Attr_Mapped_Address stun_mapped_address_decode(Stun_Attr);
+Stun_Attr_Address        stun_xor_mapped_address_decode(Stun_Attr, uint32_t tid[TID_LEN]);
+Stun_Attr_Address        stun_mapped_address_decode(Stun_Attr);
+Stun_Attr_Address        stun_response_origin_decode(Stun_Attr);
 Stun_Attr_Arr            stun_response_attrs_decode(uint8_t *, uint16_t);
 Stun_Response_Header     stun_response_header_decode(uint8_t *, size_t);
 Stun_Message_Header      stun_binding_request_new();
@@ -149,9 +151,9 @@ static void gen_tid(size_t len, uint32_t tid[len])
     }
 }
 
-Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr attr, uint32_t tid[TID_LEN])
+Stun_Attr_Address stun_xor_mapped_address_decode(Stun_Attr attr, uint32_t tid[TID_LEN])
 {
-    Stun_Attr_Mapped_Address addr = {0};
+    Stun_Attr_Address addr = {0};
 
     uint8_t *val = attr.val;
     assert(attr.len >= 4 + 4);
@@ -183,9 +185,9 @@ Stun_Attr_Mapped_Address stun_xor_mapped_address_decode(Stun_Attr attr, uint32_t
     return addr;
 }
 
-Stun_Attr_Mapped_Address stun_mapped_address_decode(Stun_Attr attr)
+Stun_Attr_Address stun_mapped_address_decode(Stun_Attr attr)
 {
-    Stun_Attr_Mapped_Address addr = {0};
+    Stun_Attr_Address addr = {0};
 
     uint8_t *val = attr.val;
     uint32_t ma_header = ntohl(*(uint32_t *)val);
@@ -211,6 +213,12 @@ Stun_Attr_Mapped_Address stun_mapped_address_decode(Stun_Attr attr)
     }
 
     return addr;
+}
+
+
+Stun_Attr_Address stun_response_origin_decode(Stun_Attr attr)
+{
+    return stun_mapped_address_decode(attr);
 }
 
 Stun_Attr_Arr stun_response_attrs_decode(uint8_t *rbuf, uint16_t rlen)

@@ -12,6 +12,8 @@
 #define FLAG_POLL_SLEEP "--poll-sleep="
 #define FLAG_DUMP_ATTRS "--dump-attrs"
 
+//#define PRINT_RESPONSE_ORIGIN
+
 static char *arg_shift(int *argc, char** argv[])
 {
     if (argc <= 0) {
@@ -81,9 +83,9 @@ static ssize_t send_with_timeout(int sockfd, void *sm, size_t smsize, double tim
     return send(sockfd, sm, smsize, 0);
 }
 
-Stun_Attr_Mapped_Address find_any_address_attr(Stun_Attr_Arr attr_arr, uint32_t tid[TID_LEN])
+Stun_Attr_Address find_any_address_attr(Stun_Attr_Arr attr_arr, uint32_t tid[TID_LEN])
 {
-    Stun_Attr_Mapped_Address xor_addr_attr = {0}, addr_attr = {0};
+    Stun_Attr_Address xor_addr_attr = {0}, addr_attr = {0};
 
     for (size_t i = 0; i < attr_arr.len; ++i) {
         Stun_Attr *attr = &attr_arr.arr[i];
@@ -104,6 +106,17 @@ Stun_Attr_Mapped_Address find_any_address_attr(Stun_Attr_Arr attr_arr, uint32_t 
 
     fprintf(stderr, "error: no address attribute found\n");
     exit(EXIT_FAILURE);
+}
+
+Stun_Attr * find_attr_of_type(Stun_Attr_Arr *attr_arr, uint16_t type)
+{
+    for (size_t i = 0; i < attr_arr->len; ++i) {
+        if (attr_arr->arr[i].type == type) {
+            return attr_arr->arr + i;
+        }
+    }
+
+    return NULL;
 }
 
 int conn_init(const char* host, const char* port)
@@ -149,7 +162,7 @@ int conn_init(const char* host, const char* port)
 
 void print_ipv4(uint32_t ip)
 {
-    printf("%d.%d.%d.%d\n",
+    printf("%d.%d.%d.%d",
             (ip >> 8*3) & 0xFF,
             (ip >> 8*2) & 0xFF,
             (ip >> 8*1) & 0xFF,
@@ -187,10 +200,10 @@ void print_ipv6(uint32_t ip[4])
         s_str[ss_len++] = str[i];
     }
 
-    printf("%s\n", s_str);
+    printf("%s", s_str);
 }
 
-void print_addr_attr(Stun_Attr_Mapped_Address attr)
+void print_addr_attr(Stun_Attr_Address attr)
 {
     if (attr.family == STUN_ADDRESS_FAMILY_IPV4) {
         print_ipv4(attr.address[0]);
@@ -320,6 +333,21 @@ int main(int argc, char* argv[])
         }
 
         print_addr_attr(find_any_address_attr(attr_arr, sm.tid));
+        printf("\n");
+
+#ifdef PRINT_RESPONSE_ORIGIN
+        {
+            Stun_Attr *attr = find_attr_of_type(&attr_arr, STUN_ATTR_RESPONSE_ORIGIN);
+            if (attr == NULL) {
+                fprintf(stderr, "error: response origin not found\n");
+            } else {
+                Stun_Attr_Address ro = stun_response_origin_decode(*attr);
+                printf("response origin: ");
+                print_addr_attr(ro);
+                printf("\n");
+            }
+        }
+#endif
 
         if (poll) {
             sleep(poll_sleep);
