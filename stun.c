@@ -14,6 +14,7 @@
 
 //#define PRINT_RESPONSE_ORIGIN
 //#define PRINT_SOFTWARE
+//#define PRINT_OTHER_ADDRESS
 
 static char *arg_shift(int *argc, char** argv[])
 {
@@ -357,6 +358,20 @@ int main(int argc, char* argv[])
                 fprintf(stderr, "error: software not found\n");
             } else {
                 printf("software: %.*s\n", attr->len, attr->val);
+            }
+        }
+#endif
+
+#ifdef PRINT_OTHER_ADDRESS
+        {
+            Stun_Attr *attr = find_attr_of_type(&attr_arr, STUN_ATTR_OTHER_ADDRESS);
+            if (attr == NULL) {
+                fprintf(stderr, "error: other address not found\n");
+            } else {
+                Stun_Attr_Address oa = stun_other_address_decode(*attr);
+                printf("other address: ");
+                print_addr_attr(oa);
+                printf("\n");
             }
         }
 #endif

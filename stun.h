@@ -139,6 +139,7 @@ ssize_t                  stun_attr_type_find_idx(uint16_t);
 Stun_Attr_Address        stun_xor_mapped_address_decode(Stun_Attr, uint32_t tid[TID_LEN]);
 Stun_Attr_Address        stun_mapped_address_decode(Stun_Attr);
 Stun_Attr_Address        stun_response_origin_decode(Stun_Attr);
+Stun_Attr_Address        stun_other_address_decode(Stun_Attr);
 Stun_Attr_Arr            stun_response_attrs_decode(uint8_t *, uint16_t);
 Stun_Response_Header     stun_response_header_decode(uint8_t *, size_t);
 Stun_Message_Header      stun_binding_request_new();
@@ -215,8 +216,12 @@ Stun_Attr_Address stun_mapped_address_decode(Stun_Attr attr)
     return addr;
 }
 
-
 Stun_Attr_Address stun_response_origin_decode(Stun_Attr attr)
+{
+    return stun_mapped_address_decode(attr);
+}
+
+Stun_Attr_Address stun_other_address_decode(Stun_Attr attr)
 {
     return stun_mapped_address_decode(attr);
 }
