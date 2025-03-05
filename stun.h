@@ -10,7 +10,7 @@
 
 #define TID_LEN 3
 #define ATTRS_ARR_CAP 128
-#define ATTR_VAL_CAP 512
+#define ATTR_VAL_CAP 1024
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
