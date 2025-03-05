@@ -13,6 +13,7 @@
 #define FLAG_DUMP_ATTRS "--dump-attrs"
 
 //#define PRINT_RESPONSE_ORIGIN
+//#define PRINT_SOFTWARE
 
 static char *arg_shift(int *argc, char** argv[])
 {
@@ -345,6 +346,17 @@ int main(int argc, char* argv[])
                 printf("response origin: ");
                 print_addr_attr(ro);
                 printf("\n");
+            }
+        }
+#endif
+
+#ifdef PRINT_SOFTWARE
+        {
+            Stun_Attr *attr = find_attr_of_type(&attr_arr, STUN_ATTR_SOFTWARE);
+            if (attr == NULL) {
+                fprintf(stderr, "error: software not found\n");
+            } else {
+                printf("software: %.*s\n", attr->len, attr->val);
             }
         }
 #endif
