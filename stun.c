@@ -15,7 +15,6 @@
 //#define PRINT_RESPONSE_ORIGIN
 //#define PRINT_SOFTWARE
 //#define PRINT_OTHER_ADDRESS
-//
 
 #define QUOTE(name) #name
 #define STR(m) QUOTE(m)
@@ -48,7 +47,7 @@ static int tid_cmp(uint32_t *tid1, uint32_t *tid2, size_t len)
     return 0;
 }
 
-static int await_sock(int rsock, int wsock, double timeout)
+static int sock_await(int rsock, int wsock, double timeout)
 {
     fd_set rfds, wfds;
     FD_ZERO(&rfds);
@@ -78,7 +77,7 @@ static int await_sock(int rsock, int wsock, double timeout)
 
 static ssize_t recv_with_timeout(int sockfd, uint8_t **buf, size_t bufsize, double timeout)
 {
-    if (await_sock(sockfd, 0, timeout) != 0) {
+    if (sock_await(sockfd, 0, timeout) != 0) {
         return 0;
     }
 
@@ -87,14 +86,14 @@ static ssize_t recv_with_timeout(int sockfd, uint8_t **buf, size_t bufsize, doub
 
 static ssize_t send_with_timeout(int sockfd, void *sm, size_t smsize, double timeout)
 {
-    if (await_sock(0, sockfd, timeout) != 0) {
+    if (sock_await(0, sockfd, timeout) != 0) {
         return 0;
     }
 
     return send(sockfd, sm, smsize, 0);
 }
 
-Stun_Attr_Address find_any_address_attr(Stun_Attr_Arr attr_arr, uint32_t tid[TID_LEN])
+Stun_Attr_Address addr_attr_find_any(Stun_Attr_Arr attr_arr, uint32_t tid[TID_LEN])
 {
     Stun_Attr_Address xor_addr_attr = {0}, addr_attr = {0};
 
@@ -119,7 +118,7 @@ Stun_Attr_Address find_any_address_attr(Stun_Attr_Arr attr_arr, uint32_t tid[TID
     exit(EXIT_FAILURE);
 }
 
-Stun_Attr * find_attr_of_type(Stun_Attr_Arr *attr_arr, uint16_t type)
+Stun_Attr * attr_find(Stun_Attr_Arr *attr_arr, uint16_t type)
 {
     for (size_t i = 0; i < attr_arr->len; ++i) {
         if (attr_arr->arr[i].type == type) {
@@ -171,7 +170,7 @@ int conn_init(const char* host, const char* port)
     return s;
 }
 
-void print_ipv4(uint32_t ip)
+void ipv4_print(uint32_t ip)
 {
     printf("%d.%d.%d.%d",
             (ip >> 8*3) & 0xFF,
@@ -180,7 +179,7 @@ void print_ipv4(uint32_t ip)
             (ip >> 8*0) & 0xFF);
 }
 
-void print_ipv6(uint32_t ip[4])
+void ipv6_print(uint32_t ip[4])
 {
     char str[8*8+1];
 
@@ -214,12 +213,12 @@ void print_ipv6(uint32_t ip[4])
     printf("%s", s_str);
 }
 
-void print_addr_attr(Stun_Attr_Address attr)
+void addr_attr_print(Stun_Attr_Address attr)
 {
     if (attr.family == STUN_ADDRESS_FAMILY_IPV4) {
-        print_ipv4(attr.address[0]);
+        ipv4_print(attr.address[0]);
     } else if (attr.family == STUN_ADDRESS_FAMILY_IPV6) {
-        print_ipv6(attr.address);
+        ipv6_print(attr.address);
     } else {
         fprintf(stderr, "error: unexpected address family\n");
         exit(EXIT_FAILURE);
@@ -367,18 +366,18 @@ int main(int argc, char* argv[])
             }
         }
 
-        print_addr_attr(find_any_address_attr(attr_arr, sm.tid));
+        addr_attr_print(addr_attr_find_any(attr_arr, sm.tid));
         printf("\n");
 
 #ifdef PRINT_RESPONSE_ORIGIN
         {
-            Stun_Attr *attr = find_attr_of_type(&attr_arr, STUN_ATTR_RESPONSE_ORIGIN);
+            Stun_Attr *attr = attr_find(&attr_arr, STUN_ATTR_RESPONSE_ORIGIN);
             if (attr == NULL) {
                 fprintf(stderr, "error: response origin not found\n");
             } else {
                 Stun_Attr_Address ro = stun_response_origin_decode(*attr);
                 printf("response origin: ");
-                print_addr_attr(ro);
+                addr_attr_print(ro);
                 printf("\n");
             }
         }
@@ -386,7 +385,7 @@ int main(int argc, char* argv[])
 
 #ifdef PRINT_SOFTWARE
         {
-            Stun_Attr *attr = find_attr_of_type(&attr_arr, STUN_ATTR_SOFTWARE);
+            Stun_Attr *attr = attr_find(&attr_arr, STUN_ATTR_SOFTWARE);
             if (attr == NULL) {
                 fprintf(stderr, "error: software not found\n");
             } else {
@@ -397,13 +396,13 @@ int main(int argc, char* argv[])
 
 #ifdef PRINT_OTHER_ADDRESS
         {
-            Stun_Attr *attr = find_attr_of_type(&attr_arr, STUN_ATTR_OTHER_ADDRESS);
+            Stun_Attr *attr = attr_find(&attr_arr, STUN_ATTR_OTHER_ADDRESS);
             if (attr == NULL) {
                 fprintf(stderr, "error: other address not found\n");
             } else {
                 Stun_Attr_Address oa = stun_other_address_decode(*attr);
                 printf("other address: ");
-                print_addr_attr(oa);
+                addr_attr_print(oa);
                 printf("\n");
             }
         }
