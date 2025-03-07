@@ -2,9 +2,9 @@
 
 executable="./build/stun"
 
-while IFS=: read -r addr port; do
-    printf "%-20s ... " "$addr $port"
-    err_out=$($executable $addr $port 2>&1 1>/dev/null)
+while IFS=: read -r addr; do
+    printf "%-20s ... " "$addr"
+    err_out=$($executable $addr 2>&1 1>/dev/null)
     status=$?
     if [[ $status -eq 0 ]]; then
         printf "\033[42mpassed\033[0m\n"

@@ -15,6 +15,15 @@
 //#define PRINT_RESPONSE_ORIGIN
 //#define PRINT_SOFTWARE
 //#define PRINT_OTHER_ADDRESS
+//
+
+#define QUOTE(name) #name
+#define STR(m) QUOTE(m)
+
+#define PANIC(msg) do { \
+    fprintf(stderr, "error: %s\n", (msg)); \
+    exit(EXIT_FAILURE); \
+} while (0)
 
 static char *arg_shift(int *argc, char** argv[])
 {
@@ -217,6 +226,44 @@ void print_addr_attr(Stun_Attr_Address attr)
     }
 }
 
+static void address_arg_parse(const char *address, char host[64], char port[64])
+{
+#define HOST_BUF_CAP 64
+#define PORT_BUF_CAP 64
+    const char *h = address;
+    size_t hlen = 0;
+
+    while (*h && *h != '!' && *h != ':') {
+        if (hlen >= HOST_BUF_CAP - 1) PANIC("host length must be less than " STR(HOST_BUF_CAP) " characters");
+        host[hlen++] = *h;
+        h++;
+    }
+    host[hlen++] = '\0';
+
+    if (*h == '\0' || strchr("!:", *h) == NULL) {
+        strcpy(port, STR(STUN_DEFAULT_PORT));
+        return;
+    }
+
+    const char *p = h + 1;
+    size_t plen = 0;
+
+    while (*p) {
+        if (plen >= PORT_BUF_CAP - 1) PANIC("port length must be less than " STR(PORT_BUF_CAP) " characters");
+        port[plen++] = *p;
+        p++;
+    }
+
+    if (plen == 0) {
+        PANIC("port must be specified after the host, separated by ':' or '!'");
+    }
+
+    port[plen++] = '\0';
+
+#undef HOST_BUF_CAP
+#undef PORT_BUF_CAP
+}
+
 int main(int argc, char* argv[])
 {
     srand(time(NULL));
@@ -224,29 +271,15 @@ int main(int argc, char* argv[])
     char *program = arg_shift(&argc, &argv);
     (void) program;
 
-    const char *host = arg_shift(&argc, &argv);
-    if (host == NULL) {
-        fprintf(stderr, "error: host argument must be provided\n");
-        exit(EXIT_FAILURE);
-    }
-    const char *port = arg_shift(&argc, &argv);
-    if (port == NULL) {
-        fprintf(stderr, "error: port argument must be provided\n");
+    const char *addr_arg = arg_shift(&argc, &argv);
+    if (addr_arg == NULL) {
+        fprintf(stderr, "error: address argument must be provided\n");
         exit(EXIT_FAILURE);
     }
 
-    int portn = atoi(port);
-    if (portn <= 0) {
-        fprintf(stderr, "error: port argument is invalid\n");
-        exit(EXIT_FAILURE);
-    }
+    char host[256] = {0}; char port[256] = {0};
 
-#if 0
-    for (size_t i = 0; i < STUN_ATTR_TYPES_LEN; ++i) {
-        printf("%02zu: %s = 0x%04X\n", i, stun_attr_type_names[i], stun_attr_types[i]);
-    }
-    printf("--------\n");
-#endif
+    address_arg_parse(addr_arg, host, port);
 
     bool poll = false;
     int poll_sleep = 5;

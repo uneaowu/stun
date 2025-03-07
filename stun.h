@@ -14,6 +14,7 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 
+#define STUN_DEFAULT_PORT 3478
 #define BINDING_REQUEST 0x0001
 #define MAGIC_COOKIE 0x2112A442
 
