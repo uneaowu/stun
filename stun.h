@@ -1,3 +1,6 @@
+#ifndef STUN_H_INCLUDE
+#define STUN_H_INCLUDE
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -298,3 +301,4 @@ ssize_t stun_attr_type_find_idx(uint16_t t)
 }
 
 #endif // STUN_H_IMPLEMENTATION
+#endif // STUN_H_INCLUDE
