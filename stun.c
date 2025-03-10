@@ -4,13 +4,13 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
-#define SOCKET_TIMEOUT 2.
 #define MAX_ATTEMPTS 10
 #define UNUSED(v) (void)(v)
 
 #define FLAG_POLL "--poll"
 #define FLAG_POLL_SLEEP "--poll-sleep="
 #define FLAG_DUMP_ATTRS "--dump-attrs"
+#define FLAG_WAIT_TIMEOUT "--wait-timeout="
 
 //#define PRINT_RESPONSE_ORIGIN
 //#define PRINT_SOFTWARE
@@ -23,6 +23,8 @@
     fprintf(stderr, "error: %s\n", (msg)); \
     exit(EXIT_FAILURE); \
 } while (0)
+
+static double wait_timeout = 2.;
 
 static char *arg_shift(int *argc, char** argv[])
 {
@@ -284,7 +286,7 @@ int main(int argc, char* argv[])
     int poll_sleep = 5;
     bool dump_attrs = false;
     char *arg;
-    while ((arg = arg_shift(&argc, &argv)) != NULL) {
+    while ((arg = arg_shift(&argc, &argv))) {
         if (strcmp(arg, FLAG_POLL) == 0) {
             poll = true;
         } else if (strncmp(arg, FLAG_POLL_SLEEP, sizeof(FLAG_POLL_SLEEP) - 1) == 0) {
@@ -296,6 +298,12 @@ int main(int argc, char* argv[])
             }
         } else if (strncmp(arg, FLAG_DUMP_ATTRS, sizeof(FLAG_DUMP_ATTRS) - 1) == 0) {
             dump_attrs = true;
+        } else if (strncmp(arg, FLAG_WAIT_TIMEOUT, sizeof(FLAG_WAIT_TIMEOUT) - 1) == 0) {
+            char *val = arg + sizeof(FLAG_WAIT_TIMEOUT) - 1;
+            wait_timeout = atof(val);
+            if (wait_timeout <= 0) {
+                PANIC(FLAG_WAIT_TIMEOUT " value is invalid\n");
+            }
         }
     }
 
@@ -327,7 +335,7 @@ int main(int argc, char* argv[])
             exit(EXIT_FAILURE);
         }
 
-        ssize_t wn = send_with_timeout(s, &sm, sizeof(sm), SOCKET_TIMEOUT);
+        ssize_t wn = send_with_timeout(s, &sm, sizeof(sm), wait_timeout);
         if (wn == 0) {
             ON_SOCK_ERR("error: wait timeout\n");
             continue;
@@ -337,7 +345,7 @@ int main(int argc, char* argv[])
         }
         assert(wn == sizeof(sm));
 
-        ssize_t rn = recv_with_timeout(s, (uint8_t **)&rbuf, sizeof(rbuf), SOCKET_TIMEOUT);
+        ssize_t rn = recv_with_timeout(s, (uint8_t **)&rbuf, sizeof(rbuf), wait_timeout);
         if (rn == 0) {
             ON_SOCK_ERR("error: wait timeout\n");
             continue;
