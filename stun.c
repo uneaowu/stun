@@ -25,6 +25,9 @@
 } while (0)
 
 static double wait_timeout = 2.;
+static bool poll = false;
+static int poll_sleep = 5;
+static bool dump_attrs = false;
 
 static char *arg_shift(int *argc, char** argv[])
 {
@@ -265,49 +268,42 @@ static void address_arg_parse(const char *address, char host[64], char port[64])
 #undef PORT_BUF_CAP
 }
 
-int main(int argc, char* argv[])
+static void flags_parse(int *argc, char** argv[])
 {
-    srand(time(NULL));
-
-    char *program = arg_shift(&argc, &argv);
-    (void) program;
-
-    const char *addr_arg = arg_shift(&argc, &argv);
-    if (addr_arg == NULL) {
-        fprintf(stderr, "error: address argument must be provided\n");
-        exit(EXIT_FAILURE);
-    }
-
-    char host[256] = {0}; char port[256] = {0};
-
-    address_arg_parse(addr_arg, host, port);
-
-    bool poll = false;
-    int poll_sleep = 5;
-    bool dump_attrs = false;
     char *arg;
-    while ((arg = arg_shift(&argc, &argv))) {
+    while ((arg = arg_shift(argc, argv))) {
         if (strcmp(arg, FLAG_POLL) == 0) {
             poll = true;
         } else if (strncmp(arg, FLAG_POLL_SLEEP, sizeof(FLAG_POLL_SLEEP) - 1) == 0) {
             char *val = arg + sizeof(FLAG_POLL_SLEEP) - 1;
             poll_sleep = atoi(val);
-            if (poll_sleep <= 0) {
-                fprintf(stderr, "error: " FLAG_POLL_SLEEP " value is invalid\n");
-                exit(EXIT_FAILURE);
-            }
+
+            if (poll_sleep <= 0) PANIC(FLAG_POLL_SLEEP " value is invalid");
+
         } else if (strncmp(arg, FLAG_DUMP_ATTRS, sizeof(FLAG_DUMP_ATTRS) - 1) == 0) {
             dump_attrs = true;
         } else if (strncmp(arg, FLAG_WAIT_TIMEOUT, sizeof(FLAG_WAIT_TIMEOUT) - 1) == 0) {
             char *val = arg + sizeof(FLAG_WAIT_TIMEOUT) - 1;
             wait_timeout = atof(val);
-            if (wait_timeout <= 0) {
-                PANIC(FLAG_WAIT_TIMEOUT " value is invalid\n");
-            }
+
+            if (wait_timeout <= 0) PANIC(FLAG_WAIT_TIMEOUT " value is invalid");
         }
     }
+}
 
-    assert(poll_sleep > 0);
+int main(int argc, char* argv[])
+{
+    srand(time(NULL));
+
+    char *program = arg_shift(&argc, &argv); (void) program;
+
+    const char *addr_arg = arg_shift(&argc, &argv);
+    if (addr_arg == NULL) PANIC("address argument must be provided");
+
+    char host[256] = {0}; char port[256] = {0};
+
+    address_arg_parse(addr_arg, host, port);
+    flags_parse(&argc, &argv);
 
     uint8_t rbuf[0xFFFF];
 
