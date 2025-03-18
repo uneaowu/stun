@@ -196,6 +196,7 @@ Stun_Attr_Address stun_mapped_address_decode(Stun_Attr attr)
     Stun_Attr_Address addr = {0};
 
     uint8_t *val = attr.val;
+    assert(attr.len >= 4 + 4);
     uint32_t ma_header = ntohl(*(uint32_t *)val);
 
     uint32_t family = (ma_header >> 16) & 0xFF;
